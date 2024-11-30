@@ -20,31 +20,22 @@ initSeq = function(len, random)
   local seq = {}
   for i = 1,len do
     if random then 
-      seq[i] = scale[math.random(1,#scale)] 
+      seq[i] = {scale[math.random(1,#scale)], math.random(0,1) == 1}
     else 
-      seq[i] = root 
+      seq[i] = {root, true} 
     end
   end
   return seq
-end
-
-mutateSeq = function()
-  for i = 1,#seq do
-    if math.random() < prob then
-      local pos = math.random(1,#scale)
-      seq[i] = scale[pos]
-    end
-  end
 end
 
 getNote = function ()
   -- Maybe mutate 
   if math.random() < prob then
     seq[seqPos] = scale[math.random(1,#scale)]
+    gateSeq[seqPos] = math.random(0,1) == 1
   end
-  return seq[seqPos]
+  return {seq[seqPos],gateSeq[seqPos]}
 end
-
 
 function init()
  
@@ -74,6 +65,8 @@ function init()
     function(scaled, raw) engine.pw(scaled) end -- action, always passes scaled and raw values
   )
   filter_pw:start()
+  
+  redraw()
 
 end
 
@@ -86,7 +79,10 @@ play = function()
       randomize()
     end
     -- play note and maybe mutate
-    engine.hz(musicutil.note_num_to_freq(getNote()+offset))
+    local note = getNote()
+    if note[2] then
+      engine.hz(musicutil.note_num_to_freq(note[1]+offset))
+    end
     if seqPos == seqLen then
       seqPos = 1
     else
@@ -156,5 +152,3 @@ function redraw()
   screen.text('Prob: '.. math.ceil(prob*100) ..'%')
   screen.update()
 end
-
-
