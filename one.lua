@@ -1,45 +1,52 @@
 -- One is my first script
 
 engine.name = 'PolyPerc'
+
 musicutil = require 'musicutil'
+
+sequins = require 'sequins'
+
 lfo = require 'lfo'
+
 offset = 0
 root = 60
-scale = musicutil.generate_scale(root, "Minor Pentatonic")
+scale = musicutil.generate_scale(root, "Dorian")
 prob = 0 --probability of mutation
 seqLen = 16 -- sequence length
 seqPos = 1 -- sequence current position
 seq = {}
+fill = 0.75
+screens = sequins
 
 norns.enc.sens(1,4)
-params:set('clock_tempo', 80)
-engine.release(1)
-engine.pw(0.3)
+params:set('clock_tempo',96)
 
 initSeq = function(len, random)
   local seq = {}
   for i = 1,len do
     if random then 
-      seq[i] = {scale[math.random(1,#scale)], math.random(0,1) == 1}
+      seq[i] = {math.random(), math.random() < fill}
     else 
-      seq[i] = {root, true} 
+      seq[i] = {0.5, true} 
     end
   end
   return seq
 end
 
-getNote = function ()
+getNext = function ()
   -- Maybe mutate 
   if math.random() < prob then
-    seq[seqPos] = scale[math.random(1,#scale)]
-    gateSeq[seqPos] = math.random(0,1) == 1
+    seq[seqPos] = {math.random(), math.random() < fill}
   end
-  return {seq[seqPos],gateSeq[seqPos]}
+  return seq[seqPos]
 end
 
 function init()
  
-  seq = initSeq(seqLen, false)
+  engine.release(1)
+  engine.pw(0.3)
+ 
+  seq = initSeq(seqLen, true)
   player = clock.run(play)
   
   filter_lfo = lfo.new(
@@ -70,6 +77,13 @@ function init()
 
 end
 
+range = 1*12 --octaves*semitones
+
+note_from_value = function (val)
+  noteNum = val*range - range/2 + root
+  return musicutil.snap_note_to_array(noteNum, scale)
+end
+
 play = function()
   beat = 1/2  
   while true do
@@ -79,10 +93,11 @@ play = function()
       randomize()
     end
     -- play note and maybe mutate
-    local note = getNote()
-    if note[2] then
-      engine.hz(musicutil.note_num_to_freq(note[1]+offset))
+    local noteGatePair = getNext()
+    if noteGatePair[2] then
+      engine.hz(musicutil.note_num_to_freq(note_from_value(noteGatePair[1])+offset))
     end
+    redraw()
     if seqPos == seqLen then
       seqPos = 1
     else
@@ -119,7 +134,7 @@ function enc(n,d)
     if  d < 0 then
       incr = -1*incr
     end
-    if prob+incr < 0 then 
+    if prob+incr < 0.05 then 
       prob = 0
     elseif prob+incr > 1 then
       prob = 1
@@ -132,23 +147,46 @@ function enc(n,d)
   
 end
 
-function redraw()
-  screen.clear()
-  screen.level(15)
-  screen.move(20,20)
-  
-  for bar = 1,#seq do
-    screen.line_width(1)
-    screen.line_rel(0,5)
-    screen.move_rel(1,0)
+printBars = function()
+  local gap = 4
+  local barLen = 20
+  local top = 40
+  for x = 1,seqLen do
+    -- get current note and gate
+    local noteGatePair = seq[x]
+    --print notes
+    local scaledLen = math.floor((noteGatePair[1]*barLen)+0.5)
+    if x == seqPos then
+      screen.level(15)
+    else
+      screen.level(1)
+    end
+    screen.move((128-seqLen*gap)/2+x*gap, top)
+    screen.line((128-seqLen*gap)/2+x*gap, top-scaledLen)
+    screen.stroke()
+    -- Print gates  
+    if noteGatePair[2] then
+      screen.move((128-seqLen*gap)/2+x*gap, top+2)
+      screen.line((128-seqLen*gap)/2+x*gap, top+3)
+      screen.stroke()
+    end
   end
+  screen.update()
+end
+
+-- screen: 128x64
+function redraw()
+  printBars()    
+  screen.clear()
   
+  --[[
   screen.move(46,30)
   screen.text('Offset: '..offset)
   screen.level(7)
   screen.move(46,38)
   screen.text('Tempo: '..params:get('clock_tempo'))
   screen.move(46,46)
-  screen.text('Prob: '.. math.ceil(prob*100) ..'%')
+  screen.text('Prob: '.. math.floor(prob*100+0.5) ..'%') -- round and truncate
   screen.update()
+  ]]
 end
