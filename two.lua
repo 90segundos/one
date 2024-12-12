@@ -2,7 +2,7 @@
 
 engine.name = 'PolyPerc'
 musicutil = require 'musicutil'
-Turing = require 'lib/turing'
+Turing = include('lib/turing')
 
 function init()
   turing = Turing.new()
