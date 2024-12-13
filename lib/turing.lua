@@ -19,13 +19,19 @@ Turing.beat = 1/2
 
 function Turing.new(params)
   local t = {}
+  params = params or {}  -- Initialize params as an empty table if it's nil
   -- Create a new instance using the incoming parameters
   t.root = params.root or Turing.root
   t.scale = params.scale or Turing.scale
   t.beat = params.beat or Turing.beat
   t.octaves = params.octaves or Turing.octaves
-  setmetatable(t, self)
-  self.__index = self
+  t.prob = params.prob or Turing.prob
+  t.fill = params.fill or Turing.fill
+  t.steps = params.steps or Turing.steps
+  t.seq = {}
+  t.seqPos = 1
+  t.offset = 0
+  setmetatable(t, { __index = Turing })
   return t
 end
 
