@@ -30,7 +30,7 @@ function Turing.new(params)
 end
 
 function Turing.setScale(scale)
-  Turing.scale = scale or 'Dorian' 
+  Turing.scale = scale or Turing.scale
 end 
 
 function Turing.setNotes(scaleName)
