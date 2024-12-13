@@ -97,7 +97,7 @@ function Turing.decreaseSeqPos()
 end
 
 function Turing.next()
-  local step = getNextStep()
+  local step = Turing.getNextStep()
   return {
     note = Turing.quantizeLevel(step.level),
     gate = step.gate,
